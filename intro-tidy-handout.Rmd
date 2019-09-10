@@ -1,0 +1,294 @@
+---
+title: "Intro to the Tidyverse"
+author: "HSL Class"
+date: "6/19/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+For today, we'll be playing around with data and examples from the teaching materials of Hadley Wickham. We're always on the lookout for more relevant and directly applicable datasets for the demonstrations, so feel free to contact us if you have any to share or suggest. Parts of this handout were also adapted from the *Dplyr Introduction* tutorial by Matthew Flickinger.
+ 
+## Learning Objectives
+
+### After completing this tutorial you will be:
+- Familiar with the *tidyverse* grammar for data tables
+- Able to transform, wrangle, and tidy data using the core *dplyr* functions
+- Able to quickly summarize facets of data tables
+- Chain commands for data wrangling using R pipes
+
+## Preflight
+
+Make sure you have R and RStudio installed in your computer.
+
+We will be working with a few core packages of the *tidyverse*; one option is for you to install the whole kit and caboodle:
+```{r, eval=FALSE}
+install.packages("tidyverse") # This will take a while...
+```
+
+Another option is to install the core packages for today:
+```{r, eval=FALSE}
+install.packages(c("tidyr","dplyr","magrittr"))
+```
+
+Remember, at the start of your session, to declare the core packages:
+```{r}
+library(tidyr)
+library(dplyr)
+library(magrittr)
+```
+Or, the whole metapackage if you have it installed that way:
+```{r, eval=FALSE}
+library(tidyverse)
+library(magrittr) # Not fully loaded by default with the tidyverse
+```
+
+We will play around with a few small datasets. To save time, make sure you also have this one in your working directory:
+
+- Star Wars characters: https://osf.io/zhp2x/download
+
+
+You can either download them via a browser or from RStudio itself, e.g.:
+```{r, eval=FALSE}
+download.file(url="https://osf.io/zhp2x/download", destfile="starwars.csv")
+```
+
+## Getting Started
+
+For convenience, put the data files and the script you are writing in the same folder and set it as your working directory. Verify via the **Files** tab in RStudio. Also, remember to declare the libraries we'll use (see above). Also, feel free to continuously refer to the cheat sheets included in this handout.
+
+### What is this tidyverse of which you speak?
+
+The tidyverse is a set of R packages that implement a common grammar and flavor of syntax to make data wrangling operations more convenient and your R code more readable. There is virtually nothing in the tidyverse that can't be done with "base" R code, but the tidyverse syntax will, at the very least, make your code more concise and easier to write to boot. Core tidyverse functions are implemented at the C++ level, so this comes with no sacrifice in performance.
+
+## Tibbles (are just tables)
+
+You'll see and hear a lot about *tibbles* when working in the tidyverse. For our purposes, tibbles are just a data frame format that R uses to make data exploration easier.
+
+```{r}
+stardata <- read.csv("starwars.csv")
+stardata # or View(stardata)
+class(stardata)
+str(stardata)
+```
+
+Note that whenever we look at this data frame, R spits out the whole thing and we need a separate command to find out about data types, dimensions, etc. What if we were dealing with a tibble instead?
+
+```{r}
+starwars <- as_tibble(stardata)
+class(starwars)
+starwars
+```
+
+Note how the tibble automatically formats the output for convenience. The tidyverse is full of these little (some would say trivial) niceties, but they add up.
+
+## Subsetting Data
+
+While you already know how to select columns and filter rows, let's go through some of the extra convenience that the tidyverse syntax provides:
+
+If we wanted only the height and mass columns of the starwars dataset we would probably do something like:
+```{r}
+data.frame(starwars$height, starwars$mass)
+```
+
+But this can get pretty tedious as the number of columns increases. The tidyverse way is:
+```{r}
+select(starwars,height,mass)
+```
+
+Ok big whoop, but select() also knows a few other tricks:
+```{r}
+select(starwars,birth_year:species) # Knows about column ranges
+select(starwars,-name) # Knows about exclusions
+select(starwars,ends_with("color")) # Can match column names
+select(starwars,starts_with("h"))
+select(starwars,contains("ir"))
+select(starwars,-starts_with("h")) # Can combine matching and exclusion
+select(starwars, planet=homeworld,everything()) # Rename and reorder columns
+```
+
+For row-logic, filter() does what we'd expect:
+```{r}
+filter(starwars, homeworld=="Tatooine")
+filter(starwars, homeworld=="Rodia" | hair_color=="blond") # Boolean combination of filters
+filter(starwars, height > 100, mass < 80)
+filter(starwars, species %in% c("Droid","Ewok")) # Filter by set
+```
+
+## Enter the Pipe
+
+If you wanted to do more complex data subsetting and transformation operations, you'd likely have to resort to intermediate tables or chaining functions:
+```{r}
+# Make a table with characters from Tatooine and Droid characters that includes their names
+# and mass in ascending order
+starA <- select(starwars,name,mass,homeworld,species)
+starB <- filter(starA, homeworld=="Tatooine" | species =="Droid")
+starC <- arrange(starB,mass)
+
+# Do the same by chaining functions
+starD <- arrange(filter(select(starwars,name,mass,homeworld,species),
+                        homeworld=="Tatooine" | species == "Droid"),mass)
+```
+
+The tidyverse introduces the Pipe syntax, derived from UNIX, that allows us to write multistep operations by sending the output of a command as the input for the next command:
+
+```{r}
+starwars %>% 
+  select(name,mass,homeworld,species) %>% # We're piping the tibble so no need to write its name again
+  filter(homeworld == "Tatooine" | species == "Droid") %>%
+  arrange(mass)
+```
+
+This syntax helps us avoid creating intermediate data tables and makes composing functions easier to write.
+
+## Transforming Data
+
+So far, we've only been slicing and dicing data. We usually need to do more than that. Say, what if we wanted to figure out, sat, whether Jabba was really obese?
+
+```{r}
+starwars %>%
+  mutate(bmi = mass / ((height /100)^2)) %>% # Creates a new column derived from other columns
+  select(name:mass,bmi)
+```
+
+Note that the above doesn't change our data table, that bmi column is ephemeral... What if we wanted to "permanently" add that column to that same dataset?
+
+```{r}
+starwars %<>%
+  mutate(bmi = mass / ((height /100)^2))
+```
+
+This is the same as doing
+
+```{r}
+starwars <- starwars %>%
+  mutate(bmi = mass / ((height /100)^2))
+```
+
+but some find the magrittr syntax easier to deal with (or at least requiring less typing)
+
+## Some other niceties
+
+The tidyverse syntax was also influenced by SQL. A few examples:
+
+How many planet:species combinations are there?
+
+```{r}
+starwars %>%
+  distinct(homeworld,species)
+```
+
+What is the average mass by species?
+
+```{r}
+starwars %>%
+  group_by(species) %>%
+  summarise ( # Apply operations or interrogate grouped data
+    number = n(), avgmass = mean(mass, na.rm= TRUE)) %>% # Take out null data points before calculating
+  filter(number >1) # Filter unique specimens
+```
+
+When dealing with bigger data, sometimes we want to operate on random samples:
+
+```{r}
+starsample <- starwars %>% sample_n(5) # The sample will be different each time
+starsample
+```
+
+## Reshaping Data
+
+The tidyverse operates under the paradigm of *tidy* data. This states that we want our datasets to ultimately conform to the following:
+
+- Each variable has its own column
+- Each observation has its own row
+- Each value has its own cell
+
+As you know, raw data doesn't always start conforming with the *tidy* principle, either because of experimental restrictions or because often untidy data is more human-readable. One of the core missions of the tidyverse is to provide functions to "tidy-up" data to make it more amenable to programmatic analysis and reproducibility.
+
+For the next few examples, we'll work with small data tables that are included in the tidyr package:
+
+```{r}
+# Some of the data we will work next. They come from an epidemiology of tuberculosis study
+table2
+table3
+table5
+```
+
+First look at **table4a**. Is this data "tidy"?
+```{r}
+table4a # Note that 1999 and 2000 are values of the variable "year"
+table4a %>%
+  gather("1999","2000",key="year",value="cases")
+```
+
+Now look at **table2**
+```{r}
+table2 # Note that the cases variable and the population variable are in the same column
+table2 %>%
+  spread(key="type", value="count")
+```
+
+Other tidying examples:
+```{r}
+table3
+table3 %>% separate(rate, into=c("cases","population"), convert=TRUE)
+```
+
+Note that R was smart enough to figure out the right separator. We could've explicitly indicated it with the sep parameter (sep="/" in this case)
+
+```{r}
+table5
+table5 %>% unite(century,year,col="Year",sep="") %>%
+  mutate(Year = as.numeric(Year)) # When uniting, the type conversion has to be done separately
+```
+
+## Advanced Wrangling: Combining Tables (aka Relational Data)
+
+Remember when I said that the tidyverse was also inspired by SQL? Well, this applies to its grammar for working with multiple tables. For the following examples, we'll use data from the nycflights13 package:
+
+```{r, eval=FALSE}
+install.packages("nycflights13") # If you don't have it already
+library(nycflights13)
+```
+
+Let's look at these data tables:
+```{r, eval=FALSE}
+airlines
+airports
+planes
+flights
+```
+
+Note that some tables have related information, some columns show in multiple tables. We basically have the makings of a relational database.
+
+```{r, eval=FALSE}
+subflights <- flights %>%
+  select(year:day,hour,minute,carrier:dest) # Let's work with a sub-table
+subflights %<>%
+  left_join(airlines, by = "carrier") 
+```
+
+Oops, one more thing
+
+```{r, eval=FALSE}
+subflights %<>% rename("Carrier Name"="name")
+```
+
+Left Joins "keep" every info of the first argument and includes only matching info from the second argument. There are other types of join that can be undestood in terms of unions and intersections:
+
+![](join-venn.png)
+
+\pagebreak
+
+## Further Steps
+
+We've only scratched the surface of even the data wrangling capabilities of tidyr and dplyr. The RStudio cheatsheets provide clues to capabilities to explore. I also recommend:
+
+- The full Dplyr Intro tutorial: <https://genome.sph.umich.edu/w/images/8/8a/Dplyr_tidyverse_md.pdf>
+- A gradual introduction to the tidyverse <https://tidyverse-intro.github.io>
+- The R for Data Science online book: <http://r4ds.had.co.nz>
+
+Note that the latter two resources start with dataviz via the ggplot package. While this is a common pedagogy tactic in the R community, I lean towards teaching data wrangling first, not least because the syntax of ggplot is different enough from the dplyr syntax that it could be confusing to teach them at the same time. 
+
