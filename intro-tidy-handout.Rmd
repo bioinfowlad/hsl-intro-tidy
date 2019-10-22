@@ -1,7 +1,7 @@
 ---
 title: "Intro to the Tidyverse"
-author: "HSL Class"
-date: "6/19/2019"
+author: "Strauss Health Sciences Library"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: pdf_document
 ---
 
