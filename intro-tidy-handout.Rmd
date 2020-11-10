@@ -220,14 +220,14 @@ First look at **table4a**. Is this data "tidy"?
 ```{r}
 table4a # Note that 1999 and 2000 are values of the variable "year"
 table4a %>%
-  gather("1999","2000",key="year",value="cases")
+  pivot_longer(c("1999","2000"),names_to="year",values_to="cases")
 ```
 
 Now look at **table2**
 ```{r}
 table2 # Note that the cases variable and the population variable are in the same column
 table2 %>%
-  spread(key="type", value="count")
+  pivot_wider(names_from="type", values_from="count")
 ```
 
 Other tidying examples:
