@@ -286,9 +286,23 @@ Left Joins "keep" every info of the first argument and includes only matching in
 
 We've only scratched the surface of even the data wrangling capabilities of tidyr and dplyr. The RStudio cheatsheets provide clues to capabilities to explore. I also recommend:
 
-- The full Dplyr Intro tutorial: <https://genome.sph.umich.edu/w/images/8/8a/Dplyr_tidyverse_md.pdf>
+- The full Dplyr Intro tutorial:
+
+<https://genome.sph.umich.edu/w/images/8/8a/Dplyr_tidyverse_md.pdf>
+
 - A gradual introduction to the tidyverse <https://tidyverse-intro.github.io>
+
 - The R for Data Science online book: <http://r4ds.had.co.nz>
 
 Note that the latter two resources start with dataviz via the ggplot package. While this is a common pedagogy tactic in the R community, I lean towards teaching data wrangling first, not least because the syntax of ggplot is different enough from the dplyr syntax that it could be confusing to teach them at the same time. 
+
+## Cheat sheets
+
+Another helpful resource is to look at the RStudio cheatsheets for the packages/applications we use:
+
+- <https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf>
+
+- <https://github.com/rstudio/cheatsheets/raw/master/data-import.pdf>
+
+
 
